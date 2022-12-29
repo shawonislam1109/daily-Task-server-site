@@ -21,14 +21,15 @@ const uri = `mongodb+srv://${user}:${password}@cluster0.5rnuhbi.mongodb.net/?ret
 
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
 
-// const TaskCollection = client.db('DailyTask').collections('userTask');
 
 async function run() {
     try {
-        const TaskCollection = client.db('DailyTask').collection('userTask')
+        const TaskCollection = client.db('DailyTask').collection('userTask');
+        const CompleteCollection = client.db('DailyTask').collection('CompleteTask')
 
         app.post('/task', async (req, res) => {
             const query = req.body;
+            console.log(query)
             const allTask = await TaskCollection.insertOne(query);
             res.send(allTask);
         })
@@ -49,6 +50,47 @@ async function run() {
             const filter = { _id: ObjectId(id) }
             const DeleteTask = await TaskCollection.deleteOne(filter)
             res.send(DeleteTask);
+        })
+        app.put('/UpdateTask/:id', async (req, res) => {
+            const id = req.params.id;
+            const filter = { _id: ObjectId(id) }
+            const updateTask = req.body;
+            console.log(updateTask);
+            const option = { upsert: true }
+            const updateDoc = {
+                $set: {
+                    user: updateTask.user,
+                    image: updateTask.image,
+                    details: updateTask.details,
+                    date: updateTask.date
+                }
+            }
+            const result = await TaskCollection.updateOne(filter, updateDoc, option);
+            res.send(result);
+        })
+
+        app.post('/complete', async (req, res) => {
+            const query = req.body;
+            const completeTask = await CompleteCollection.insertOne(query)
+            res.send(completeTask);
+        })
+        app.put('/completeTask/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: ObjectId(id) }
+            const option = { upsert: true }
+            const updateDoc = {
+                $set: {
+                    complete: 'Done'
+                }
+            }
+            const result = await TaskCollection.updateOne(query, updateDoc, option)
+            res.send(result);
+        })
+        app.get('/completeTasks', async (req, res) => {
+            const email = req.body.email
+            const query = { email };
+            const result = await CompleteCollection.find(query).toArray()
+            res.send(result);
         })
     }
     finally {
